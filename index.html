@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Rhythm Heroes - 신재생에너지 교과 연계 리듬게임</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(22, 30, 46, 0.9);
+            --border-color: #2a364f;
+            --text-color: #f0f6fc;
+            --accent-green: #22c55e;
+            --accent-blue: #38bdf8;
+            --accent-yellow: #eab308;
+            --accent-orange: #f97316;
+            --accent-purple: #a855f7;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100%;
+            max-width: 850px;
+            height: 100vh;
+            max-height: 920px;
+            display: flex;
+            flex-direction: column;
+            background: radial-gradient(circle at center, #131b2e 0%, #0b0f19 100%);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+
+        /* Header / HUD Area */
+        header {
+            padding: 12px 20px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stage-badge {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stats-group {
+            display: flex;
+            gap: 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #1c2536;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            transition: width 0.15s linear;
+        }
+
+        /* Canvas Area */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Touch Control Buttons */
+        .touch-controls {
+            display: flex;
+            height: 90px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .btn-touch {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-right: 1px solid var(--border-color);
+            transition: background 0.1s;
+            touch-action: manipulation;
+        }
+
+        .btn-touch:last-child {
+            border-right: none;
+        }
+
+        .btn-touch:active, .btn-touch.active {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .btn-touch sub {
+            font-size: 0.72rem;
+            margin-top: 4px;
+            opacity: 0.8;
+            font-weight: normal;
+        }
+
+        /* Screens & Overlays */
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            background: rgba(11, 15, 25, 0.94);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .overlay-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        h1 {
+            font-size: 2.1rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 0.92rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+            max-width: 520px;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--accent-green);
+            color: #ffffff;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+            transition: transform 0.1s, background 0.2s;
+            margin: 6px;
+        }
+
+        .btn:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #334155;
+        }
+
+        /* Stage Selector Grid */
+        .stage-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 580px;
+            margin-bottom: 20px;
+        }
+
+        .stage-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .stage-card:hover, .stage-card.selected {
+            border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .stage-card h3 {
+            font-size: 0.98rem;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stage-card p {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        .stage-card .badge-mechanic {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 2px 6px;
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+            font-size: 0.7rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* Educational Learning Modal Box */
+        .edu-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 520px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .edu-card h2 {
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edu-card .principle-box {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .edu-card ul {
+            padding-left: 20px;
+            font-size: 0.83rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        /* Results Box */
+        .result-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            width: 100%;
+            max-width: 460px;
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        /* Floating Texts */
+        .judgment-text {
+            position: absolute;
+            top: 62%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.2rem;
+            font-weight: 900;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s ease-out, transform 0.15s ease-out;
+            text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+            z-index: 5;
+        }
+
+        .combo-text {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--accent-yellow);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 5;
+        }
+
+        /* Responsive UI */
+        @media (max-width: 600px) {
+            header { padding: 8px 12px; }
+            h1 { font-size: 1.6rem; }
+            .stage-selector { grid-template-columns: 1fr; }
+            .touch-controls { height: 75px; }
+            .btn-touch { font-size: 0.95rem; }
+            .judgment-text { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- Header HUD -->
+    <header>
+        <div class="hud-top">
+            <div class="stage-badge" id="hud-stage-name">🌀 1. 풍력 발전소</div>
+            <div class="stats-group">
+                <div class="stat-item">⚡ <span id="hud-score">0</span> MW</div>
+                <div class="stat-item">🌱 <span id="hud-carbon">0.0</span> kg CO₂</div>
+                <div class="stat-item">🌲 <span id="hud-trees">0.0</span> 그루</div>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="hud-progress"></div>
+        </div>
+    </header>
+
+    <!-- Main Game Canvas -->
+    <div id="canvas-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="judgment-display" class="judgment-text">PERFECT</div>
+        <div id="combo-display" class="combo-text">0 COMBO</div>
+    </div>
+
+    <!-- Mobile Touch Controller -->
+    <div class="touch-controls">
+        <button class="btn-touch" id="btn-left">
+            <span id="label-btn-left">◀ LEFT</span>
+            <sub id="sub-btn-left">좌측 조작</sub>
+        </button>
+        <button class="btn-touch" id="btn-space">
+            <span id="label-btn-space">SPACEBAR</span>
+            <sub id="sub-btn-space">중앙 조작</sub>
+        </button>
+        <button class="btn-touch" id="btn-right">
+            <span id="label-btn-right">RIGHT ▶</span>
+            <sub id="sub-btn-right">우측 조작</sub>
+        </button>
+    </div>
+
+    <!-- STAGE SELECT SCREEN -->
+    <div id="screen-start" class="overlay-screen active">
+        <h1>Green Rhythm Heroes</h1>
+        <p class="subtitle">리듬에 맞춰 신재생에너지의 과학적 발전 원리를 체험하세요! 노트를 정확히 입력하여 전력을 생산하고 탄소 배출을 줄여 깨끗한 도시를 건설하세요.</p>
+        
+        <div class="stage-selector">
+            <div class="stage-card selected" onclick="selectStage(0)" id="stage-card-0">
+                <h3>🌀 1. 풍력 발전</h3>
+                <p>바람의 운동에너지 ➔ 터빈 회전. 지속적인 바람을 타는 Hold 롱노트!</p>
+                <span class="badge-mechanic">기믹: Hold 롱노트</span>
+            </div>
+            <div class="stage-card" onclick="selectStage(1)" id="stage-card-1">
+                <h3>☀️ 2. 태양광 발전</h3>
+                <p>빛에너지 ➔ PV셀 광전효과. 집광 타이밍 동시 입력(Dual) 노트!</p>
+                <span class="badge-mechanic">기믹: 동시 입력(Dual)</span>
+            </div>
+            <div class="stage-card" onclick="selectStage(2)" id="stage-card-2">
+                <h3>♻️ 3. 폐기물 에너지</h3>
+                <p>쓰레기 열가소성/가스화. 올바른 레일 분리수거 타격!</p>
+                <span class="badge-mechanic">기믹: 3레일 분리수거</span>
+            </div>
+            <div class="stage-card" onclick="selectStage(3)" id="stage-card-3">
+                <h3>💧 4. 수력 발전</h3>
+                <p>물의 위치에너지 ➔ 낙차 수류. 수문 개방 리듬 가변속도 노트!</p>
+                <span class="badge-mechanic">기믹: 가변속도 변속 노트</span>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn" onclick="showEduModal()">학습 후 시작하기</button>
+        </div>
+        <p style="margin-top: 12px; font-size: 0.8rem; color: #64748b;">최고 전력 기록: <span id="high-score-display">0</span> MW</p>
+    </div>
+
+    <!-- EDUCATIONAL BRIEFING MODAL -->
+    <div id="screen-edu" class="overlay-screen">
+        <div class="edu-card">
+            <h2 id="edu-title">🌀 풍력 발전의 교과 원리</h2>
+            <div class="principle-box" id="edu-principle">
+                <b>핵심 원리:</b> 바람의 운동에너지가 풍차 날개(터빈)를 회전시켜 전기에너지를 생산합니다.
+            </div>
+            <div style="margin-bottom: 8px; font-size: 0.85rem; font-weight: bold; color: #f8fafc;">💡 게임 핵심 기믹 및 조작법:</div>
+            <ul id="edu-tips">
+                <li>바람의 지속성에 맞춰 길게 누르는 **Hold(롱노트)**가 등장합니다.</li>
+                <li>바람 속도가 강해질수록 풍차 터빈 회전속도가 빨라집니다.</li>
+            </ul>
+        </div>
+        <div>
+            <button class="btn" onclick="startGame()">게임 시작 (Space)</button>
+            <button class="btn btn-secondary" onclick="hideEduModal()">뒤로 가기</button>
+        </div>
+    </div>
+
+    <!-- RESULT OVERLAY -->
+    <div id="screen-result" class="overlay-screen">
+        <h1 id="result-title">STAGE CLEAR!</h1>
+        <p class="subtitle" id="result-desc">성공적으로 신재생에너지를 발전시켜 탄소를 감축했습니다.</p>
+
+        <div class="result-box">
+            <div class="result-row">
+                <span>총 생산 전력량:</span>
+                <span id="res-score">0 MW</span>
+            </div>
+            <div class="result-row">
+                <span>이산화탄소(CO₂) 감축량:</span>
+                <span id="res-carbon" style="color: var(--accent-green);">0.0 kg</span>
+            </div>
+            <div class="result-row">
+                <span>소나무 흡수 환산 효과:</span>
+                <span id="res-trees" style="color: var(--accent-green);">0.0 그루</span>
+            </div>
+            <div class="result-row">
+                <span>최대 콤보 (Max Combo):</span>
+                <span id="res-combo">0</span>
+            </div>
+            <div class="result-row">
+                <span>판정 (Perfect / Great / Miss):</span>
+                <span id="res-judgments">0 / 0 / 0</span>
+            </div>
+            <div class="result-row">
+                <span>최종 평가 랭크:</span>
+                <span id="res-rank" style="color: var(--accent-yellow);">S</span>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn" onclick="startGame()">다시하기</button>
+            <button class="btn btn-secondary" onclick="showStartScreen()">메인으로</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Web Audio API Sound Synthesizer (Zero External Dependencies)
+class SoundSynth {
+    constructor() {
+        this.ctx = null;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioCtx();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    playHit(freq = 440, type = 'sine', duration = 0.1) {
+        if (!this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    playMiss() {
+        if (!this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(60, this.ctx.currentTime + 0.18);
+
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.18);
+        } catch(e) {}
+    }
+
+    playNoteSound(lane) {
+        const freqs = [329.63, 440.00, 523.25]; // E4, A4, C5 notes
+        this.playHit(freqs[lane] || 440, 'triangle', 0.1);
+    }
+}
+
+const synth = new SoundSynth();
+
+// 4 Major Renewable Energy Educational Stage Configs
+const STAGES = [
+    {
+        id: 'wind',
+        name: '🌀 1. 풍력 발전소',
+        bgTheme: '#09182a',
+        energyColor: '#38bdf8',
+        icon: '🌀',
+        bpm: 105,
+        mechanicText: '풍속 홀드(Hold) 롱노트',
+        eduTitle: '🌀 풍력 발전 (Wind Energy)',
+        eduPrinciple: '바람의 운동에너지 ➔ 풍차 날개(터빈) 회전 ➔ 발전기 작동 ➔ 전기에너지 생산',
+        eduTips: [
+            '바람 지속성에 맞춘 **롱노트(Hold)**가 길게 등장합니다. 끝까지 누르고 있으세요!',
+            '실시간 바람 속도(m/s)가 증가할수록 풍차 회전 속도가 상승합니다.'
+        ],
+        touchLabels: ['◀ 바람 조절', '⚡ 풍차 차징', '바람 조절 ▶']
+    },
+    {
+        id: 'solar',
+        name: '☀️ 2. 태양광 발전소',
+        bgTheme: '#231604',
+        energyColor: '#facc15',
+        icon: '☀️',
+        bpm: 115,
+        mechanicText: '광전효과 집광 동시노트',
+        eduTitle: '☀️ 태양광 발전 (Solar Photovoltaic)',
+        eduPrinciple: '태양 빛에너지 ➔ 광반도체(PV 셀) 흡수 ➔ 광전효과로 전자 이동 ➔ 직류 전류 발생',
+        eduTips: [
+            '집광 효율을 극대화하기 위해 두 레일이 동시에 내려오는 **동시 입력(Dual) 노트**가 자주 출현합니다.',
+            '태양 고도가 높아질수록 빛의 응축 효율이 높아집니다.'
+        ],
+        touchLabels: ['☀️ 좌측 셀', '⚡ 집광 스페이스', '우측 셀 ☀️']
+    },
+    {
+        id: 'waste',
+        name: '♻️ 3. 폐기물 에너지',
+        bgTheme: '#0d1f12',
+        energyColor: '#22c55e',
+        icon: '♻️',
+        bpm: 125,
+        mechanicText: '3-Way 올바른 분리수거 타격',
+        eduTitle: '♻️ 폐기물 에너지 (Waste-to-Energy)',
+        eduPrinciple: '가연성 폐기물 소각 및 유기물 가스화 ➔ 스팀 터빈 회전 / 열 회수 ➔ 전력 공급',
+        eduTips: [
+            '노트에 표시되는 쓰레기 유형(🍂/🍾/📦)에 맞는 정확한 레일 키를 입력해야 바이오가스가 정상 회수됩니다.',
+            '잘못 입력하거나 missed 시 화석연료 연소가 일어납니다.'
+        ],
+        touchLabels: ['🍂 유기물 레일', '🍾 병/캔 레일', '📦 종이/플라스틱 ▶']
+    },
+    {
+        id: 'hydro',
+        name: '💧 4. 수력 발전소',
+        bgTheme: '#081f2d',
+        energyColor: '#60a5fa',
+        icon: '💧',
+        bpm: 110,
+        mechanicText: '위치에너지 낙차 변속 노트',
+        eduTitle: '💧 수력 발전 (Hydroelectric)',
+        eduPrinciple: '댐 보관 물의 위치에너지 ➔ 낙차 수류의 운동에너지 ➔ 수차 터빈 회전 ➔ 전력 생산',
+        eduTips: [
+            '수문 개방 및 수위 차이에 따라 떨어지는 노트의 속도가 빨라지거나 느려지는 **변속 노트**가 특징입니다.',
+            '낙차가 클수록 위치에너지가 커져 전력 생산 효율이 극대화됩니다.'
+        ],
+        touchLabels: ['💧 수문 1번', '🌊 메인 댐', '수문 2번 💧']
+    }
+];
+
+// Core Game Loop & Physics States
+let canvas, ctx;
+let currentStageIndex = 0;
+let isPlaying = false;
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let carbonReduced = 0; // kg CO2
+let judgments = { perfect: 0, great: 0, miss: 0 };
+
+let notes = [];
+let particles = [];
+let keyStates = [false, false, false];
+let laneFlash = [0, 0, 0];
+
+let lastTime = 0;
+let noteSpawnTimer = 0;
+let stageDuration = 40; // 40 Seconds Game Session
+let timeRemaining = stageDuration;
+
+const JUDGMENT_LINE_Y_RATIO = 0.82;
+const PERFECT_WINDOW = 32;
+const GREAT_WINDOW = 65;
+
+window.onload = () => {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    setupControls();
+    loadHighScore();
+
+    requestAnimationFrame(gameLoop);
+};
+
+function resizeCanvas() {
+    const container = document.getElementById('canvas-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+}
+
+function selectStage(index) {
+    currentStageIndex = index;
+    document.querySelectorAll('.stage-card').forEach((card, idx) => {
+        card.classList.toggle('selected', idx === index);
+    });
+    
+    const stage = STAGES[index];
+    document.getElementById('hud-stage-name').innerText = stage.name;
+    
+    // Update Mobile Touch Controller Labels
+    document.getElementById('label-btn-left').innerText = stage.touchLabels[0];
+    document.getElementById('label-btn-space').innerText = stage.touchLabels[1];
+    document.getElementById('label-btn-right').innerText = stage.touchLabels[2];
+}
+
+function showEduModal() {
+    const stage = STAGES[currentStageIndex];
+    document.getElementById('edu-title').innerText = stage.eduTitle;
+    document.getElementById('edu-principle').innerHTML = `<b>핵심 원리:</b> ${stage.eduPrinciple}`;
+    
+    const tipsList = document.getElementById('edu-tips');
+    tipsList.innerHTML = '';
+    stage.eduTips.forEach(tip => {
+        const li = document.createElement('li');
+        li.innerHTML = tip;
+        tipsList.appendChild(li);
+    });
+
+    document.getElementById('screen-start').classList.remove('active');
+    document.getElementById('screen-edu').classList.add('active');
+}
+
+function hideEduModal() {
+    document.getElementById('screen-edu').classList.remove('active');
+    document.getElementById('screen-start').classList.add('active');
+}
+
+function setupControls() {
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        synth.init();
+
+        if (!isPlaying) {
+            if (e.code === 'Space') {
+                const eduScreen = document.getElementById('screen-edu');
+                if (eduScreen.classList.contains('active')) {
+                    startGame();
+                    return;
+                }
+            }
+        }
+
+        if (!isPlaying) return;
+
+        if (e.code === 'ArrowLeft') handleKeyPress(0);
+        if (e.code === 'Space') handleKeyPress(1);
+        if (e.code === 'ArrowRight') handleKeyPress(2);
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (!isPlaying) return;
+        if (e.code === 'ArrowLeft') handleKeyRelease(0);
+        if (e.code === 'Space') handleKeyRelease(1);
+        if (e.code === 'ArrowRight') handleKeyRelease(2);
+    });
+
+    // Touch Button Handlers
+    const bindTouch = (btnId, lane) => {
+        const btn = document.getElementById(btnId);
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            synth.init();
+            btn.classList.add('active');
+            if (isPlaying) handleKeyPress(lane);
+        });
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            btn.classList.remove('active');
+            if (isPlaying) handleKeyRelease(lane);
+        });
+        btn.addEventListener('mousedown', () => {
+            synth.init();
+            btn.classList.add('active');
+            if (isPlaying) handleKeyPress(lane);
+        });
+        btn.addEventListener('mouseup', () => {
+            btn.classList.remove('active');
+            if (isPlaying) handleKeyRelease(lane);
+        });
+    };
+
+    bindTouch('btn-left', 0);
+    bindTouch('btn-space', 1);
+    bindTouch('btn-right', 2);
+}
+
+function handleKeyPress(lane) {
+    keyStates[lane] = true;
+    laneFlash[lane] = 1.0;
+
+    const judgmentY = canvas.height * JUDGMENT_LINE_Y_RATIO;
+    let hitFound = false;
+
+    for (let i = 0; i < notes.length; i++) {
+        const note = notes[i];
+        if (note.lane === lane && !note.hit) {
+            const dist = Math.abs(note.y - judgmentY);
+            if (dist <= GREAT_WINDOW) {
+                hitFound = true;
+                note.hit = true;
+
+                if (dist <= PERFECT_WINDOW) {
+                    processJudgment('PERFECT', lane, note.y);
+                } else {
+                    processJudgment('GREAT', lane, note.y);
+                }
+                break;
+            }
+        }
+    }
+
+    if (!hitFound) {
+        synth.playHit(160, 'sine', 0.04);
+    }
+}
+
+function handleKeyRelease(lane) {
+    keyStates[lane] = false;
+}
+
+function processJudgment(type, lane, yPos) {
+    const laneX = (canvas.width / 3) * lane + (canvas.width / 6);
+
+    if (type === 'PERFECT') {
+        score += 100 + (combo * 3);
+        combo++;
+        carbonReduced += 0.45; // kg CO2
+        judgments.perfect++;
+        synth.playNoteSound(lane);
+        createParticles(laneX, yPos, STAGES[currentStageIndex].energyColor, 12);
+        showJudgmentText('PERFECT', '#22c55e');
+    } else if (type === 'GREAT') {
+        score += 60 + combo;
+        combo++;
+        carbonReduced += 0.25;
+        judgments.great++;
+        synth.playNoteSound(lane);
+        createParticles(laneX, yPos, '#facc15', 8);
+        showJudgmentText('GREAT', '#facc15');
+    } else {
+        combo = 0;
+        judgments.miss++;
+        synth.playMiss();
+        showJudgmentText('MISS', '#ef4444');
+    }
+
+    if (combo > maxCombo) maxCombo = combo;
+    updateHUD();
+}
+
+function showJudgmentText(text, color) {
+    const display = document.getElementById('judgment-display');
+    const comboDisplay = document.getElementById('combo-display');
+
+    display.innerText = text;
+    display.style.color = color;
+    display.style.opacity = '1';
+    display.style.transform = 'translate(-50%, -60%) scale(1.1)';
+
+    if (combo > 1) {
+        comboDisplay.innerText = `${combo} COMBO!`;
+        comboDisplay.style.opacity = '1';
+    } else {
+        comboDisplay.style.opacity = '0';
+    }
+
+    setTimeout(() => {
+        display.style.opacity = '0';
+        display.style.transform = 'translate(-50%, -50%) scale(1.0)';
+    }, 280);
+}
+
+function updateHUD() {
+    document.getElementById('hud-score').innerText = score;
+    document.getElementById('hud-carbon').innerText = carbonReduced.toFixed(1);
+    
+    // Pine Trees Planting Equivalent: ~1 tree absorbs 6.6kg CO2 per year
+    const trees = (carbonReduced / 0.66);
+    document.getElementById('hud-trees').innerText = trees.toFixed(1);
+
+    const progress = Math.min(100, Math.max(0, ((stageDuration - timeRemaining) / stageDuration) * 100));
+    document.getElementById('hud-progress').style.width = `${progress}%`;
+}
+
+function startGame() {
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    carbonReduced = 0;
+    judgments = { perfect: 0, great: 0, miss: 0 };
+    notes = [];
+    particles = [];
+    timeRemaining = stageDuration;
+    noteSpawnTimer = 0;
+
+    document.querySelectorAll('.overlay-screen').forEach(el => el.classList.remove('active'));
+    isPlaying = true;
+    lastTime = performance.now();
+    updateHUD();
+}
+
+function gameLoop(now) {
+    const dt = (now - lastTime) / 1000 || 0;
+    lastTime = now;
+
+    if (isPlaying) {
+        updateGame(dt);
+    }
+    
+    renderGame();
+    requestAnimationFrame(gameLoop);
+}
+
+function updateGame(dt) {
+    timeRemaining -= dt;
+    if (timeRemaining <= 0) {
+        endGame();
+        return;
+    }
+
+    const stage = STAGES[currentStageIndex];
+    const spawnInterval = 60 / stage.bpm;
+    noteSpawnTimer += dt;
+
+    // Spawn Notes based on Stage Specific Mechanics
+    if (noteSpawnTimer >= spawnInterval) {
+        noteSpawnTimer = 0;
+        
+        if (stage.id === 'solar' && Math.random() < 0.3) {
+            // Solar Photovoltaic Dual Charge Note
+            notes.push(createNote(0, stage));
+            notes.push(createNote(2, stage));
+        } else if (stage.id === 'waste') {
+            // Waste Classification Icons (Organic, Glass/Metal, Paper)
+            const wasteIcons = ['🍂', '🍾', '📦'];
+            const lane = Math.floor(Math.random() * 3);
+            const note = createNote(lane, stage);
+            note.customIcon = wasteIcons[lane];
+            notes.push(note);
+        } else {
+            const lane = Math.floor(Math.random() * 3);
+            notes.push(createNote(lane, stage));
+        }
+    }
+
+    // Update Note Movement & Dynamic Hydro Speed
+    const judgmentY = canvas.height * JUDGMENT_LINE_Y_RATIO;
+    for (let i = notes.length - 1; i >= 0; i--) {
+        const note = notes[i];
+        
+        // Dynamic Variable Speed for Hydro Dam Stage
+        if (stage.id === 'hydro') {
+            const hydroSpeedMult = 0.8 + Math.sin(note.y * 0.01) * 0.4;
+            note.y += note.speed * hydroSpeedMult * dt;
+        } else {
+            note.y += note.speed * dt;
+        }
+
+        // Miss Check
+        if (!note.hit && !note.missed && note.y > judgmentY + GREAT_WINDOW) {
+            note.missed = true;
+            processJudgment('MISS', note.lane, note.y);
+        }
+
+        if (note.y > canvas.height + 60 || note.hit) {
+            notes.splice(i, 1);
+        }
+    }
+
+    // Update Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= dt * 2.2;
+        if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    for (let i = 0; i < 3; i++) {
+        laneFlash[i] = Math.max(0, laneFlash[i] - dt * 4);
+    }
+
+    updateHUD();
+}
+
+function createNote(lane, stage) {
+    return {
+        lane: lane,
+        y: 0,
+        speed: canvas.height * (stage.id === 'wind' ? 0.6 : 0.68),
+        hit: false,
+        missed: false,
+        customIcon: null
+    };
+}
+
+function renderGame() {
+    const stage = STAGES[currentStageIndex];
+    
+    // Clear & Draw Stage Theme Background
+    ctx.fillStyle = stage.bgTheme;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const laneWidth = canvas.width / 3;
+    const judgmentY = canvas.height * JUDGMENT_LINE_Y_RATIO;
+
+    // Background Educational Visual Effects
+    drawStageBackground(stage);
+
+    // Render Lanes & Flash Effects
+    for (let i = 0; i < 3; i++) {
+        const x = i * laneWidth;
+        
+        if (laneFlash[i] > 0) {
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(1, `rgba(255, 255, 255, ${laneFlash[i] * 0.22})`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x, 0, laneWidth, canvas.height);
+        }
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    // Judgment Target Line
+    ctx.strokeStyle = stage.energyColor;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = stage.energyColor;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(0, judgmentY);
+    ctx.lineTo(canvas.width, judgmentY);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Key Target Rings
+    for (let i = 0; i < 3; i++) {
+        const cx = i * laneWidth + laneWidth / 2;
+        ctx.fillStyle = keyStates[i] ? stage.energyColor : 'rgba(255, 255, 255, 0.08)';
+        ctx.beginPath();
+        ctx.arc(cx, judgmentY, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    // Render Notes
+    for (const note of notes) {
+        if (note.hit) continue;
+
+        const nx = note.lane * laneWidth + laneWidth / 2;
+        
+        ctx.save();
+        ctx.shadowColor = stage.energyColor;
+        ctx.shadowBlur = 10;
+
+        ctx.fillStyle = stage.energyColor;
+        ctx.beginPath();
+        ctx.arc(nx, note.y, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(note.customIcon || stage.icon, nx, note.y);
+
+        ctx.restore();
+    }
+
+    // Particles
+    for (const p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+// Procedural Educational Backgrounds (Turbines, Solar Radiation, Waves)
+function drawStageBackground(stage) {
+    const time = performance.now() * 0.002;
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = stage.energyColor;
+
+    if (stage.id === 'wind') {
+        const cx = canvas.width * 0.85;
+        const cy = canvas.height * 0.28;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < 3; i++) {
+            const angle = time * 2.5 + (i * Math.PI * 2 / 3);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(angle) * 80, cy + Math.sin(angle) * 80);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = stage.energyColor;
+            ctx.stroke();
+        }
+    } else if (stage.id === 'solar') {
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.2;
+        for (let i = 0; i < 10; i++) {
+            const angle = time * 0.4 + (i * Math.PI / 5);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(angle) * 140, cy + Math.sin(angle) * 140);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = stage.energyColor;
+            ctx.stroke();
+        }
+    } else if (stage.id === 'hydro') {
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 15) {
+            const y = canvas.height * 0.35 + Math.sin(x * 0.02 + time * 3.5) * 18;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = stage.energyColor;
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function createParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 130 + 40;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed * 0.016,
+            vy: Math.sin(angle) * speed * 0.016,
+            radius: Math.random() * 4 + 2,
+            color: color,
+            alpha: 1.0
+        });
+    }
+}
+
+function endGame() {
+    isPlaying = false;
+
+    let rank = 'C';
+    const totalJudgments = judgments.perfect + judgments.great + judgments.miss;
+    const accuracy = totalJudgments > 0 ? (judgments.perfect + judgments.great * 0.7) / totalJudgments : 0;
+
+    if (accuracy >= 0.88) rank = 'S';
+    else if (accuracy >= 0.72) rank = 'A';
+    else if (accuracy >= 0.55) rank = 'B';
+
+    document.getElementById('result-title').innerText = rank === 'S' || rank === 'A' ? 'STAGE CLEAR!' : 'STAGE COMPLETED';
+    document.getElementById('res-score').innerText = `${score} MW`;
+    document.getElementById('res-carbon').innerText = `${carbonReduced.toFixed(1)} kg CO₂`;
+    document.getElementById('res-trees').innerText = `${(carbonReduced / 0.66).toFixed(1)} 그루`;
+    document.getElementById('res-combo').innerText = maxCombo;
+    document.getElementById('res-judgments').innerText = `${judgments.perfect} / ${judgments.great} / ${judgments.miss}`;
+    document.getElementById('res-rank').innerText = rank;
+
+    saveHighScore(score);
+    document.getElementById('screen-result').classList.add('active');
+}
+
+function showStartScreen() {
+    document.querySelectorAll('.overlay-screen').forEach(el => el.classList.remove('active'));
+    document.getElementById('screen-start').classList.add('active');
+    loadHighScore();
+}
+
+function saveHighScore(currentScore) {
+    try {
+        const saved = localStorage.getItem('grh_high_score') || 0;
+        if (currentScore > parseInt(saved, 10)) {
+            localStorage.setItem('grh_high_score', currentScore);
+        }
+    } catch(e) {}
+}
+
+function loadHighScore() {
+    try {
+        const saved = localStorage.getItem('grh_high_score') || 0;
+        document.getElementById('high-score-display').innerText = saved;
+    } catch(e) {
+        document.getElementById('high-score-display').innerText = '0';
+    }
+}
+</script>
+</body>
+</html>
